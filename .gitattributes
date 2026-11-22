@@ -1,0 +1,6 @@
+# Archivos que se ejecutan dentro de contenedores Linux: siempre con fin de línea LF
+*.sh text eol=lf
+*.sql text eol=lf
+despliegue/Caddyfile text eol=lf
+despliegue/Dockerfile text eol=lf
+*.png binary
