@@ -1,0 +1,34 @@
+<%- include('../partials/encabezado') %>
+<div class="encabezado">
+  <div><h1>Mapa del almacén</h1><p class="tenue">Cada cuadro es una posición. En piso, la fila va del frente (arriba) al fondo (abajo).</p></div>
+  <% if (usuario.esSupervisor) { %><a class="boton secundario" href="/posiciones/etiquetas"><%- include('../partials/icono', { nombre: 'imprimir' }) %> Etiquetas de posiciones</a><% } %>
+</div>
+<div class="leyenda panel">
+  <span><span class="celda"></span>Libre</span>
+  <span><span class="celda ocupada"></span>Ocupada</span>
+  <span><span class="celda n-PREVENTIVO"></span>Preventivo</span>
+  <span><span class="celda n-ALTO"></span>Alto</span>
+  <span><span class="celda n-CRITICO"></span>Crítico</span>
+  <span><span class="celda n-VENCIDO"></span>Vencido</span>
+</div>
+<% if (!zonas.length) { %><div class="aviso info">No hay posiciones registradas. Importa el catálogo del almacén.</div><% } %>
+<% for (const z of zonas) { %>
+<section class="panel mapa-zona">
+  <h2>Zona <%= z.zona %> <span class="tenue chico">· <%= z.tipo === 'PISO' ? 'tarimas en piso' : 'rack' %><%= z.frio ? ' · cámara fría' : '' %> · <%= z.ocupadas %> de <%= z.total %> ocupadas</span></h2>
+  <div class="mapa-grupos">
+    <% for (const [grupo, celdas] of z.grupos) { %>
+    <div class="mapa-grupo">
+      <span class="rotulo"><%= grupo.split('-').slice(1).join('-') || grupo %></span>
+      <% for (const c of celdas) { %>
+        <% if (c.id_tarima) { %>
+          <a class="celda ocupada <%= c.nivel ? 'n-' + c.nivel : '' %>" href="/tarimas/<%= encodeURIComponent(c.id_tarima) %>" title="<%= c.id_posicion %> · tarima <%= c.id_tarima %><%= c.nivel ? ' · ' + f.nivel(c.nivel) : '' %>" aria-label="<%= c.id_posicion %> ocupada"></a>
+        <% } else { %>
+          <span class="celda" title="<%= c.id_posicion %> · libre"></span>
+        <% } %>
+      <% } %>
+    </div>
+    <% } %>
+  </div>
+</section>
+<% } %>
+<%- include('../partials/pie') %>

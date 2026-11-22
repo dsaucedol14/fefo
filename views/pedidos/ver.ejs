@@ -1,0 +1,62 @@
+<%- include('../partials/encabezado') %>
+<div class="encabezado">
+  <div>
+    <h1>Pedido <span class="mono"><%= pedido.folio %></span></h1>
+    <p class="tenue"><%= pedido.cliente || 'Sin cliente' %> · creado <%= f.fechaHora(pedido.creado_en) %> por <%= pedido.creado_por_nombre || '—' %> ·
+      <strong><%= pedido.estado === 'ABIERTO' ? 'Abierto' : pedido.estado === 'CERRADO' ? 'Surtido completo' : 'Cancelado' %></strong></p>
+  </div>
+  <% if (pedido.estado === 'ABIERTO' && usuario.esSupervisor) { %>
+  <form method="post" action="/pedidos/<%= pedido.id %>/cancelar" onsubmit="return confirm('¿Cancelar el pedido y liberar sus reservas?')">
+    <input type="hidden" name="_csrf" value="<%= csrf %>"><button type="submit" class="secundario">Cancelar pedido</button>
+  </form>
+  <% } %>
+</div>
+
+<h2>Lista de surtido</h2>
+<% for (const l of pedido.lineas) { %>
+<section class="panel">
+  <h3><%= l.renglon %>. <%= l.producto %> <span class="tenue chico mono"><%= l.sku %></span></h3>
+  <p class="chico" style="margin:0 0 10px">Pedido <strong><%= l.cajas %></strong> · surtidas <strong><%= l.cajas_surtidas %></strong>
+    <% if (l.sinExistencia > 0 && pedido.estado === 'ABIERTO') { %> · <span class="bloqueo">faltan <%= l.sinExistencia %> cajas sin existencia disponible</span><% } %></p>
+  <div class="tarjetas">
+  <% l.reservas.forEach((r, i) => { %>
+    <article class="tarjeta <%= i === 0 ? 'propuesta' : '' %>">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center">
+        <div>
+          <div><span class="fefo">FEFO</span> Lote <strong class="mono"><%= r.num_lote %></strong> · caduca <%= f.fecha(r.caducidad_efectiva || r.fecha_caducidad) %> · <strong><%= r.cajas %> cajas</strong></div>
+          <div style="margin-top:4px">Zona <strong><%= r.zona || '—' %></strong> · <%- include('../partials/ubicacion', { pos: r, bloqueadores: r.bloqueadores }) %></div>
+          <div class="chico tenue">Tarima <span class="mono"><%= r.id_tarima %></span></div>
+        </div>
+        <a class="boton" href="/surtir/<%= r.id %>"><%- include('../partials/icono', { nombre: 'surtir' }) %> Surtir</a>
+      </div>
+    </article>
+  <% }) %>
+  </div>
+  <% if (!l.reservas.length && l.cajas_surtidas >= l.cajas) { %><p class="chico" style="color:var(--ok)">Renglón completo.</p><% } %>
+</section>
+<% } %>
+
+<% if (pedido.salidas.length) { %>
+<section class="panel">
+  <h2>Salidas registradas</h2>
+  <div class="tabla-envoltura">
+  <table class="tabla chico">
+    <thead><tr><th>Hora</th><th>Renglón</th><th>Lote</th><th>Propuesto</th><th class="derecha">Cajas</th><th>FEFO</th><th>Usuario</th></tr></thead>
+    <tbody>
+    <% for (const s of pedido.salidas) { %>
+      <tr>
+        <td class="nowrap"><%= f.fechaHora(s.fecha_hora) %></td>
+        <td><%= s.renglon %></td>
+        <td class="mono"><%= s.num_lote %></td>
+        <td class="mono"><%= s.num_lote_propuesto %></td>
+        <td class="derecha"><%= s.cajas %></td>
+        <td><%= s.conforme_fefo ? 'Conforme' : 'Excepción: ' + (MOTIVOS[s.motivo_excepcion] || s.motivo_excepcion) %></td>
+        <td><%= s.usuario %></td>
+      </tr>
+    <% } %>
+    </tbody>
+  </table>
+  </div>
+</section>
+<% } %>
+<%- include('../partials/pie') %>

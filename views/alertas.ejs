@@ -1,0 +1,55 @@
+<%- include('partials/encabezado') %>
+<div class="encabezado">
+  <div><h1>Alertas de caducidad</h1><p class="tenue">Nivel según el umbral U(c) de cada categoría (RN-07) y riesgo por rotación. Fecha de cálculo: <%= f.fecha(hoy) %>.</p></div>
+</div>
+
+<nav class="cifras" aria-label="Filtrar por nivel" style="margin-bottom:16px">
+  <a class="cifra" href="/alertas" style="<%= !filtro ? 'border-color:var(--primario);border-width:2px' : '' %>"><span class="tenue">Todas</span><b><%= conteo.VENCIDO + conteo.CRITICO + conteo.ALTO + conteo.PREVENTIVO %></b></a>
+  <% for (const n of ['VENCIDO', 'CRITICO', 'ALTO', 'PREVENTIVO', 'ROTACION', 'BLOQUEADO']) { %>
+    <a class="cifra" href="/alertas?nivel=<%= n %>" style="<%= filtro === n ? 'border-color:var(--primario);border-width:2px' : '' %>">
+      <span class="nivel nivel-<%= n === 'BLOQUEADO' ? 'CRITICO' : n %>"><%= f.nivel(n) %></span><b><%= conteo[n] %></b></a>
+  <% } %>
+</nav>
+
+<% if (bajas.length) { %>
+<section class="panel">
+  <h2>Bajas propuestas pendientes</h2>
+  <p class="tenue chico">La autorización de bajas (RF-17) se habilita en la productización; aquí quedan registradas.</p>
+  <ul class="chico">
+  <% for (const b of bajas) { %>
+    <li><%= b.producto %> · lote <span class="mono"><%= b.num_lote %></span> · tarima <a class="mono" href="/tarimas/<%= b.id_tarima %>"><%= b.id_tarima %></a> · <%= b.cajas %> cajas · propuso <%= b.registro || '—' %>, <%= f.fechaHora(b.creado_en) %></li>
+  <% } %>
+  </ul>
+</section>
+<% } %>
+
+<% if (!alertas.length) { %><div class="aviso ok">No hay lotes en este nivel.</div><% } %>
+<div class="tarjetas">
+<% for (const a of alertas) { %>
+  <article class="tarjeta">
+    <h3>
+      <% if (a.nivel) { %><span class="nivel nivel-<%= a.nivel %>"><%= f.nivel(a.nivel) %></span><% } %>
+      <% if (a.rotacion) { %><span class="nivel nivel-ROTACION" title="No alcanzará a salir al ritmo de venta actual">Rotación</span><% } %>
+      <%= a.producto %>
+    </h3>
+    <div class="chico">Lote <strong class="mono"><%= a.num_lote %></strong> · caduca <%= f.fecha(a.caducidad_efectiva || a.fecha_caducidad) %> · <strong><%= f.dias(a.d) %></strong> · <%= a.cajas %> cajas</div>
+    <div class="chico tenue"><%= a.categoria %>: U = <%= a.U %> días<%= a.supuesto ? ' (valor por omisión)' : '' %><%= a.demanda ? ` · demanda ${a.demanda.toFixed(1)} cajas/día` : '' %></div>
+    <% for (const t of a.tarimas) { %>
+      <div style="margin-top:6px">
+        <a class="mono chico" href="/tarimas/<%= encodeURIComponent(t.id_tarima) %>"><%= t.id_tarima %></a> · <%= t.cajas %> cajas ·
+        <%- include('partials/ubicacion', { pos: t, bloqueadores: t.bloqueadores }) %>
+      </div>
+      <% if (a.nivel === 'VENCIDO') { %>
+      <form method="post" action="/bajas" style="margin-top:6px">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <input type="hidden" name="id_lote" value="<%= a.id_lote %>">
+        <input type="hidden" name="id_tarima" value="<%= t.id_tarima %>">
+        <input type="hidden" name="volver" value="/alertas<%= filtro ? '?nivel=' + filtro : '' %>">
+        <button type="submit" class="peligro chico">Proponer baja</button>
+      </form>
+      <% } %>
+    <% } %>
+  </article>
+<% } %>
+</div>
+<%- include('partials/pie') %>

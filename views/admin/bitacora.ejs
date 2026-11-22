@@ -1,0 +1,42 @@
+<%- include('../partials/encabezado') %>
+<div class="encabezado">
+  <div><h1>Bitácora de evaluación</h1><p class="tenue">Solo de adición: no se puede editar ni borrar (RF-20). Los exportes identifican a cada usuario solo por su código numérico.</p></div>
+  <div class="acciones" style="margin:0">
+    <a class="boton secundario" href="/admin/bitacora.csv">Exportar bitácora (CSV)</a>
+    <a class="boton secundario" href="/admin/movimientos.csv">Exportar movimientos (CSV)</a>
+  </div>
+</div>
+<%- include('../partials/menu-admin') %>
+<div class="rejilla">
+  <section class="panel">
+    <h2>Tareas de evaluación</h2>
+    <% if (!tareas.length) { %><p class="tenue chico">Todavía no hay tareas. Escribe un código en la franja amarilla («Iniciar tarea») antes de que el operador empiece.</p><% } %>
+    <ul class="chico">
+      <% for (const t of tareas) { %><li><a class="mono" href="/admin/bitacora?tarea=<%= encodeURIComponent(t.tarea) %>"><%= t.tarea %></a> · <%= t.n %> eventos · <%= f.fechaHora(t.inicio) %></li><% } %>
+    </ul>
+    <% if (tarea) { %><a class="chico" href="/admin/bitacora">Ver todas</a><% } %>
+  </section>
+</div>
+<section class="panel">
+  <h2><%= tarea ? 'Tarea ' + tarea : 'Últimos 300 eventos' %></h2>
+  <div class="tabla-envoltura">
+  <table class="tabla chico">
+    <thead><tr><th>Fecha y hora</th><th>Usuario</th><th>Tarea</th><th>Acción</th><th>Registro</th><th class="derecha">Escaneos</th><th>Resultado</th><th>Detalle</th></tr></thead>
+    <tbody>
+    <% for (const b of filas) { %>
+      <tr>
+        <td class="nowrap mono"><%= b.fecha_hora %></td>
+        <td><%= b.usuario || '' %></td>
+        <td class="mono"><%= b.tarea || '' %></td>
+        <td><%= b.accion %></td>
+        <td class="mono"><%= b.entidad %> <%= b.id_registro || '' %></td>
+        <td class="derecha"><%= b.escaneos ?? '' %></td>
+        <td><%= b.resultado || '' %></td>
+        <td class="chico" style="max-width:320px;word-break:break-word"><%= b.detalle || '' %><%= b.valor_nuevo ? ' ' + JSON.stringify(b.valor_nuevo) : '' %></td>
+      </tr>
+    <% } %>
+    </tbody>
+  </table>
+  </div>
+</section>
+<%- include('../partials/pie') %>

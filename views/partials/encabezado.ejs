@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1d4e89">
+  <title><%= titulo %> · FEFO Tarimas</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="icon" href="/static/img/icono.svg" type="image/svg+xml">
+</head>
+<body>
+<% if (usuario) { %>
+<header class="barra">
+  <a class="marca" href="/"><%- include('icono', { nombre: 'tarima' }) %> FEFO Tarimas</a>
+  <nav class="menu" aria-label="Principal">
+    <a href="/recepcion" class="<%= ruta.startsWith('/recepcion') ? 'activo' : '' %>">Recibir</a>
+    <a href="/mover" class="<%= ruta.startsWith('/mover') ? 'activo' : '' %>">Ubicar / mover</a>
+    <a href="/pedidos" class="<%= ruta.startsWith('/pedidos') || ruta.startsWith('/surtir') ? 'activo' : '' %>">Surtir</a>
+    <a href="/localizar" class="<%= ruta.startsWith('/localizar') || ruta.startsWith('/tarimas') ? 'activo' : '' %>">Localizar</a>
+    <a href="/alertas" class="<%= ruta.startsWith('/alertas') ? 'activo' : '' %>">Alertas</a>
+    <a href="/posiciones" class="<%= ruta.startsWith('/posiciones') ? 'activo' : '' %>">Mapa</a>
+    <% if (usuario.esSupervisor) { %><a href="/admin/bitacora" class="<%= ruta.startsWith('/admin') ? 'activo' : '' %>">Administración</a><% } %>
+  </nav>
+  <div class="sesion">
+    <a href="/cuenta" title="Mi cuenta"><%= usuario.nombre %> · <%= usuario.nombreRol %></a>
+    <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrf %>"><button type="submit">Salir</button></form>
+  </div>
+</header>
+<% if (fechaSimulada) { %><div class="franja-fecha">Fecha de operación fija: <strong><%= f.fecha(hoy) %></strong> (datos simulados [S]). Las caducidades y alertas se calculan con esta fecha.</div><% } %>
+<% if (usuario.esSupervisor || tarea) { %>
+<div class="franja-tarea no-imprimir">
+  <form method="post" action="/tarea">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <input type="hidden" name="volver" value="<%= ruta %>">
+    <% if (tarea) { %>
+      Evaluación · tarea <strong class="mono"><%= tarea %></strong> en curso
+      <button type="submit" class="secundario chico">Terminar tarea</button>
+    <% } else { %>
+      <label for="tarea" style="display:inline;margin:0">Evaluación:</label>
+      <input id="tarea" name="tarea" placeholder="Código de tarea" maxlength="30" pattern="[A-Za-z0-9._\-]+" title="Letras, números, punto o guion">
+      <button type="submit" class="secundario chico">Iniciar tarea</button>
+    <% } %>
+  </form>
+</div>
+<% } %>
+<% } %>
+<main>
+<% if (mensajes.ok) { %><div class="aviso ok" role="status"><%= mensajes.ok %></div><% } %>
+<% if (mensajes.error) { %><div class="aviso error" role="alert"><%= mensajes.error %></div><% } %>

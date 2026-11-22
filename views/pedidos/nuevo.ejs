@@ -1,0 +1,41 @@
+<%- include('../partials/encabezado') %>
+<div class="encabezado"><div><h1>Nuevo pedido</h1><p class="tenue">Al guardarlo se reservan los lotes en orden FEFO.</p></div></div>
+<% if (error) { %><div class="aviso error" role="alert"><%= error %></div><% } %>
+<form method="post" action="/pedidos" style="max-width:720px">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <div class="panel">
+    <div class="campo"><label for="cliente">Cliente o referencia</label><input id="cliente" name="cliente" value="<%= cliente || '' %>" maxlength="150" placeholder="Opcional; p. ej. escenario FEFO-07"></div>
+  </div>
+  <div id="renglones">
+  <% renglones.forEach((r) => { %>
+    <fieldset class="renglon panel" data-renglon>
+      <button type="button" class="quitar secundario chico" data-quitar aria-label="Quitar renglón">Quitar</button>
+      <div class="fila-form">
+        <div class="campo" style="grid-column: span 2"><label>Producto</label>
+          <select name="sku" required>
+            <option value="">Elige el producto</option>
+            <% for (const p of productos) { %><option value="<%= p.sku %>" <%= r.sku === p.sku ? 'selected' : '' %>><%= p.nombre %> · <%= p.existencia %> cajas</option><% } %>
+          </select>
+        </div>
+        <div class="campo"><label>Cajas</label><input name="cajas" type="number" min="1" max="9999" inputmode="numeric" value="<%= r.cajas || '' %>" required></div>
+      </div>
+    </fieldset>
+  <% }) %>
+  </div>
+  <div class="acciones"><button type="button" class="secundario" id="agregar">+ Agregar renglón</button></div>
+  <div class="acciones"><button type="submit" class="grande">Crear pedido y lista de surtido</button></div>
+</form>
+<script>
+(function () {
+  const c = document.getElementById('renglones');
+  const ajustar = () => c.querySelectorAll('[data-quitar]').forEach((b) => { b.hidden = c.children.length === 1; });
+  document.getElementById('agregar').addEventListener('click', () => {
+    const copia = c.querySelector('[data-renglon]').cloneNode(true);
+    copia.querySelectorAll('input, select').forEach((i) => { i.value = ''; });
+    c.appendChild(copia); ajustar(); copia.querySelector('select').focus();
+  });
+  c.addEventListener('click', (e) => { const b = e.target.closest('[data-quitar]'); if (b) { b.closest('[data-renglon]').remove(); ajustar(); } });
+  ajustar();
+}());
+</script>
+<%- include('../partials/pie') %>

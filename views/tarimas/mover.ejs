@@ -1,0 +1,41 @@
+<%- include('../partials/encabezado') %>
+<div class="encabezado">
+  <div><h1>Ubicar o mover tarima</h1><p class="tenue">Escanea la tarima, luego la etiqueta del lugar donde la dejas, y confirma.</p></div>
+</div>
+<% if (error) { %><div class="aviso error" role="alert"><%= error %></div><% } %>
+
+<div class="panel" style="max-width:640px">
+  <div class="paso <%= t ? 'hecho' : '' %>">
+    <span class="num">1</span>
+    <div>
+      <% if (!t) { %>
+      <form method="get" action="/mover">
+        <%- include('../partials/escaner', { nombre: 'tarima', etiqueta: 'Tarima', autofocus: true, enviar: true, placeholder: 'Escanea la etiqueta de la tarima' }) %>
+        <button type="submit" class="secundario">Continuar</button>
+      </form>
+      <% } else { %>
+        <h3>Tarima <span class="mono"><%= t.id_tarima %></span> <a class="chico" href="/mover">cambiar</a></h3>
+        <div class="chico"><% for (const l of t.lotes) { if (l.cajas > 0) { %><div><%= l.producto %> · lote <span class="mono"><%= l.num_lote %></span> · <%= l.cajas %> cajas</div><% } } %></div>
+        <p class="chico">Ahora está en: <%- include('../partials/ubicacion', { pos: t, bloqueadores: [] }) %></p>
+        <% if (t.requiereFrio) { %><p class="chico"><span class="nivel nivel-PREVENTIVO">Requiere frío</span> solo puede ir a la cámara fría.</p><% } %>
+      <% } %>
+    </div>
+  </div>
+
+  <% if (t) { %>
+  <form method="post" action="/mover" style="margin-top:16px">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <input type="hidden" name="tarima" value="<%= t.id_tarima %>">
+    <input type="hidden" name="escaneos" value="<%= locals.escaneosPrevios || 0 %>">
+    <div class="paso">
+      <span class="num">2</span>
+      <div><%- include('../partials/escaner', { nombre: 'posicion', etiqueta: t.id_posicion ? 'Posición destino' : 'Posición donde queda', valor: posicion, autofocus: true, placeholder: 'Ej. B-F07-D3' }) %></div>
+    </div>
+    <div class="paso">
+      <span class="num">3</span>
+      <div><button type="submit" class="grande" data-confirmar>Confirmar <%= t.id_posicion ? 'movimiento' : 'ubicación' %></button></div>
+    </div>
+  </form>
+  <% } %>
+</div>
+<%- include('../partials/pie') %>

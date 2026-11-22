@@ -1,0 +1,63 @@
+<%- include('../partials/encabezado') %>
+<div class="encabezado">
+  <div><h1>Surtir · <%= r.producto %></h1><p class="tenue">Pedido <a class="mono" href="/pedidos/<%= r.pedido_id %>"><%= r.folio %></a> · renglón <%= r.renglon %></p></div>
+</div>
+
+<section class="tarjeta propuesta" style="margin-bottom:16px">
+  <h3><span class="fefo">FEFO</span> Saca <%= r.cajas %> cajas del lote <span class="mono"><%= r.num_lote %></span></h3>
+  <div class="chico">Caduca <%= f.fecha(r.caducidad_efectiva || r.fecha_caducidad) %></div>
+  <div style="margin-top:8px">Zona <strong><%= r.zona || '—' %></strong> · <%- include('../partials/ubicacion', { pos: r, bloqueadores: r.bloqueadores }) %></div>
+  <div class="chico">Tarima <span class="mono"><%= r.id_tarima %></span></div>
+  <% if (r.bloqueadores.length) { %><p class="chico" style="margin-bottom:0">Mueve primero las tarimas del frente. Si no es posible, saca otro lote y elige el motivo «Tarima inaccesible».</p><% } %>
+</section>
+
+<% if (error) { %><div class="aviso <%= pideMotivo ? 'atencion' : 'error' %>" role="alert"><%= error %></div><% } %>
+
+<% if (caducado) { %>
+<form method="post" action="/bajas" class="panel">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <input type="hidden" name="id_lote" value="<%= caducado.id_lote %>">
+  <input type="hidden" name="id_tarima" value="<%= caducado.id_tarima %>">
+  <input type="hidden" name="volver" value="/surtir/<%= r.id %>">
+  <p>Lote <strong class="mono"><%= caducado.num_lote %></strong> en la tarima <span class="mono"><%= caducado.id_tarima %></span>: <%= caducado.cajas %> cajas caducadas.</p>
+  <button type="submit" class="peligro">Proponer baja por caducidad</button>
+</form>
+<% } %>
+
+<form method="post" action="/surtir/<%= r.id %>" class="panel" style="max-width:640px">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <input type="hidden" name="escaneos" value="<%= form.escaneos || 0 %>">
+  <%- include('../partials/escaner', { nombre: 'tarima', etiqueta: 'Tarima de la que sacas', valor: form.tarima, autofocus: !form.tarima, placeholder: 'Escanea la etiqueta de la tarima' }) %>
+
+  <% if (opciones) { %>
+    <fieldset class="campo" style="border:0;padding:0">
+      <legend style="font-weight:600;margin-bottom:4px">Lote que estás sacando</legend>
+      <% for (const o of opciones) { %>
+        <label class="opcion"><input type="radio" name="lote" value="<%= o.id_lote %>" required> <span class="mono"><%= o.num_lote %></span>&nbsp;· caduca <%= f.fecha(o.caducidad_efectiva || o.fecha_caducidad) %> · <%= o.cajas %> cajas</label>
+      <% } %>
+    </fieldset>
+  <% } else if (!pideMotivo) { %>
+    <details <%= form.lote ? 'open' : '' %>><summary class="chico">La tarima tiene varios lotes: escanear la caja</summary>
+      <%- include('../partials/escaner', { nombre: 'lote', etiqueta: 'Caja o lote', valor: form.lote, placeholder: 'Código GS1 de la caja o número de lote' }) %>
+    </details>
+  <% } %>
+
+  <div class="campo">
+    <label for="cajas">Cajas</label>
+    <input id="cajas" name="cajas" type="number" min="1" max="<%= r.cajas %>" inputmode="numeric" value="<%= form.cajas || r.cajas %>" required>
+  </div>
+
+  <% if (pideMotivo) { %>
+  <fieldset class="campo" style="border:1px solid #f2c48f;border-radius:10px;padding:10px 12px;background:var(--alto-fondo)">
+    <legend style="font-weight:600">Motivo de la excepción (RN-09)<%= locals.elegido ? ' · lote ' + elegido.num_lote : '' %></legend>
+    <% for (const [clave, texto] of Object.entries(MOTIVOS)) { %>
+      <label class="opcion"><input type="radio" name="motivo" value="<%= clave %>" <%= form.motivo === clave ? 'checked' : '' %> required> <%= texto %></label>
+    <% } %>
+    <div class="campo"><label for="justificacion">Justificación</label><input id="justificacion" name="justificacion" maxlength="300" value="<%= form.justificacion || '' %>" placeholder="Obligatoria si es decisión del operador"></div>
+    <% if (locals.elegido) { %><input type="hidden" name="lote" value="<%= elegido.id_lote %>"><% } %>
+  </fieldset>
+  <% } %>
+
+  <button type="submit" class="grande" data-confirmar>Confirmar salida</button>
+</form>
+<%- include('../partials/pie') %>

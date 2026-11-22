@@ -1,0 +1,38 @@
+<%- include('../partials/encabezado') %>
+<div class="encabezado"><div><h1>Categorías y umbrales de alerta</h1>
+  <p class="tenue">U(c) = mín{VU, VMR + TR + MS}. Si falta VMR, TR o MS se usan <%= omision %> días por omisión. Los cambios aplican de inmediato (RNF-11).</p></div></div>
+<%- include('../partials/menu-admin') %>
+<div class="tarjetas">
+<% for (const c of categorias) { %>
+  <form method="post" action="/admin/categorias" class="tarjeta">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <input type="hidden" name="id" value="<%= c.id %>">
+    <h3><%= c.nombre %> <span class="tenue chico"><%= c.productos %> productos</span>
+      <span class="nivel nivel-PREVENTIVO">U = <%= c.U %> días<%= c.supuesto ? ' (omisión)' : '' %></span></h3>
+    <div class="fila-form">
+      <div class="campo"><label>Nombre</label><input name="nombre" value="<%= c.nombre %>" maxlength="60" required></div>
+      <div class="campo"><label>Conservación</label><select name="conservacion"><% for (const k of ['AMBIENTE', 'REFRIGERADO', 'CONGELADO']) { %><option <%= c.conservacion === k ? 'selected' : '' %>><%= k %></option><% } %></select></div>
+      <div class="campo"><label title="Vida útil total al recibirse">VU (días)</label><input name="vu_dias" type="number" min="0" value="<%= c.vu_dias ?? '' %>"></div>
+      <div class="campo"><label title="Vida mínima remanente que exigen los clientes">VMR (días)</label><input name="vmr_dias" type="number" min="0" value="<%= c.vmr_dias ?? '' %>"></div>
+      <div class="campo"><label title="Tiempo habitual para despachar o liquidar">TR (días)</label><input name="tr_dias" type="number" min="0" value="<%= c.tr_dias ?? '' %>"></div>
+      <div class="campo"><label title="Margen de seguridad">MS (días)</label><input name="ms_dias" type="number" min="0" value="<%= c.ms_dias ?? '' %>"></div>
+    </div>
+    <div class="chico tenue">Niveles: crítico ≤ <%= (c.U / 4).toFixed(1) %> · alto ≤ <%= (c.U / 2).toFixed(1) %> · preventivo ≤ <%= c.U %> días</div>
+    <button type="submit" class="secundario chico" style="margin-top:8px">Guardar</button>
+  </form>
+<% } %>
+  <form method="post" action="/admin/categorias" class="tarjeta">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <h3>Nueva categoría</h3>
+    <div class="fila-form">
+      <div class="campo"><label>Nombre</label><input name="nombre" maxlength="60" required></div>
+      <div class="campo"><label>Conservación</label><select name="conservacion"><option>AMBIENTE</option><option>REFRIGERADO</option><option>CONGELADO</option></select></div>
+      <div class="campo"><label>VU</label><input name="vu_dias" type="number" min="0"></div>
+      <div class="campo"><label>VMR</label><input name="vmr_dias" type="number" min="0"></div>
+      <div class="campo"><label>TR</label><input name="tr_dias" type="number" min="0"></div>
+      <div class="campo"><label>MS</label><input name="ms_dias" type="number" min="0"></div>
+    </div>
+    <button type="submit" class="chico" style="margin-top:8px">Crear</button>
+  </form>
+</div>
+<%- include('../partials/pie') %>

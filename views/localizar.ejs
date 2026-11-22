@@ -1,0 +1,26 @@
+<%- include('partials/encabezado') %>
+<div class="encabezado"><div><h1>Localizar</h1><p class="tenue">Busca por lote, SKU, nombre del producto, o escanea una tarima, una posición o una caja.</p></div></div>
+<form method="get" action="/localizar" class="panel" style="max-width:720px">
+  <%- include('partials/escaner', { nombre: 'q', etiqueta: 'Buscar', valor: entrada, autofocus: !entrada, enviar: true, placeholder: 'Lote, SKU, producto, tarima o posición' }) %>
+  <button type="submit">Buscar</button>
+</form>
+
+<% if (resultados) { %>
+  <% if (!resultados.length) { %>
+    <div class="aviso info">No hay existencias que coincidan con «<%= entrada %>».</div>
+  <% } else { %>
+  <p class="tenue"><%= resultados.length %> <%= resultados.length === 1 ? 'resultado' : 'resultados' %>. El lote marcado <span class="fefo">FEFO</span> es el que debe salir primero de cada producto.</p>
+  <div class="tarjetas">
+    <% for (const r of resultados) { %>
+    <article class="tarjeta <%= r.esFefo ? 'propuesta' : '' %>">
+      <h3><%= r.producto %> <% if (r.esFefo) { %><span class="fefo">FEFO</span><% } %></h3>
+      <div class="chico tenue">Lote <span class="mono"><%= r.num_lote %></span> · caduca <%= f.fecha(r.caducidad_efectiva || r.fecha_caducidad) %> (<%= f.dias(r.d) %>) · <%= r.cajas %> cajas</div>
+      <div style="margin-top:6px">Zona <strong><%= r.zona || '—' %></strong> ·
+        <%- include('partials/ubicacion', { pos: r, bloqueadores: r.bloqueadores }) %></div>
+      <div class="chico">Tarima <a class="mono" href="/tarimas/<%= encodeURIComponent(r.id_tarima) %>"><%= r.id_tarima %></a></div>
+    </article>
+    <% } %>
+  </div>
+  <% } %>
+<% } %>
+<%- include('partials/pie') %>

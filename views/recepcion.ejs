@@ -1,0 +1,67 @@
+<%- include('partials/encabezado') %>
+<div class="encabezado">
+  <div><h1>Recibir tarima</h1><p class="tenue">Captura cada lote que trae la tarima. Al guardar se genera el ID y su etiqueta QR.</p></div>
+</div>
+<% if (error) { %><div class="aviso error" role="alert"><%= error %></div><% } %>
+
+<form method="post" action="/recepcion" id="form-recepcion">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <input type="hidden" name="escaneos" value="<%= locals.escaneos || 0 %>">
+
+  <% if (avisos.length) { %>
+  <div class="aviso atencion" role="alert">
+    <strong>Vida remanente por debajo del mínimo (RN-03).</strong> Se necesita autorización de un supervisor para recibir:
+    <ul><% for (const a of avisos) { %><li><%= a %></li><% } %></ul>
+    <div style="margin-top:10px">
+    <% if (usuario.esSupervisor) { %>
+      <label class="opcion"><input type="checkbox" name="autorizo" value="1" required> Autorizo recibir estos lotes</label>
+    <% } else { %>
+      <div class="fila-form">
+        <div class="campo"><label for="sup_usuario">Usuario del supervisor</label><input id="sup_usuario" name="sup_usuario" autocapitalize="none" autocomplete="off" required></div>
+        <div class="campo"><label for="sup_password">Contraseña del supervisor</label><input id="sup_password" name="sup_password" type="password" autocomplete="off" required></div>
+      </div>
+    <% } %>
+    </div>
+  </div>
+  <% } %>
+
+  <div class="panel no-imprimir">
+    <div class="campo">
+      <label for="esc-caja">Escanear caja (GS1)</label>
+      <div class="escaner">
+        <input id="esc-caja" data-escaner data-caja autocomplete="off" spellcheck="false" placeholder="Código de la caja con lote y caducidad">
+        <button type="button" class="camara secundario" data-camara="esc-caja" aria-label="Escanear con la cámara"><%- include('partials/icono', { nombre: 'camara' }) %></button>
+      </div>
+      <div class="ayuda" id="caja-mensaje">Si la caja trae código GS1-128 o DataMatrix con lote (10) y caducidad (17), se llenan solos. Si solo trae el producto, captura lote y caducidad a mano.</div>
+    </div>
+  </div>
+
+  <div id="renglones">
+    <% renglones.forEach((r, i) => { %>
+    <fieldset class="renglon panel" data-renglon>
+      <legend class="tenue chico">Lote <span data-numero><%= i + 1 %></span></legend>
+      <button type="button" class="quitar secundario chico" data-quitar aria-label="Quitar este lote">Quitar</button>
+      <div class="fila-form">
+        <div class="campo" style="grid-column: span 2">
+          <label>Producto (SKU)</label>
+          <select name="sku" required>
+            <option value="">Elige el producto</option>
+            <% for (const p of productos) { %><option value="<%= p.sku %>" <%= r.sku === p.sku ? 'selected' : '' %>><%= p.nombre %> · <%= p.sku %><%= p.requiere_frio ? ' · frío' : '' %></option><% } %>
+          </select>
+        </div>
+        <div class="campo"><label>Número de lote</label><input name="num_lote" value="<%= r.num_lote || '' %>" maxlength="20" autocapitalize="characters" autocomplete="off" required></div>
+        <div class="campo"><label>Caducidad</label><input name="caducidad" type="date" value="<%= r.caducidad || '' %>" required></div>
+        <div class="campo"><label>Cajas</label><input name="cajas" type="number" min="1" max="9999" inputmode="numeric" value="<%= r.cajas || '' %>" required></div>
+      </div>
+    </fieldset>
+    <% }) %>
+  </div>
+  <div class="acciones">
+    <button type="button" class="secundario" id="agregar">+ Agregar otro lote</button>
+  </div>
+  <div class="acciones">
+    <button type="submit" class="grande">Recibir tarima y generar etiqueta</button>
+  </div>
+</form>
+<script src="/static/js/recepcion.js"></script>
+<%- include('partials/pie') %>
