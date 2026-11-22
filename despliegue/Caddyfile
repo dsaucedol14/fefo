@@ -1,0 +1,27 @@
+# HTTPS en la red local sin depender de internet (RNF-08, ADR-008). Caddy emite el certificado con su propia
+# autoridad para la IP de la PC (FEFO_HOST en .env). Cada teléfono instala una vez el certificado raíz desde
+# http://IP-DE-LA-PC/ca.crt (riesgo R2 de P3).
+{
+	local_certs
+	# La redirección a HTTPS la hace el bloque http:// para dejar pasar /ca.crt
+	auto_https disable_redirects
+}
+
+http:// {
+	handle /ca.crt {
+		root * /data/caddy/pki/authorities/local
+		rewrite * /root.crt
+		header Content-Type application/x-x509-ca-cert
+		file_server
+	}
+	handle {
+		redir https://{host}{uri} permanent
+	}
+}
+
+https://{$FEFO_HOST:localhost}, https://localhost {
+	tls internal
+	encode gzip
+	header Strict-Transport-Security "max-age=31536000"
+	reverse_proxy api:3000
+}

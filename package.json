@@ -1,36 +1,31 @@
 {
-  "name": "fefo-tarimas",
-  "version": "0.1.0",
-  "description": "Prototipo de trazabilidad de tarimas y control FEFO de perecederos para almacenes de pymes (P2, UNISUR).",
-  "main": "src/server.js",
-  "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "test": "node --test \"test/*.test.js\"",
-    "demo": "node scripts/demo.js --reiniciar",
-    "importar": "node scripts/importar-anexo.js"
+  "name": "fefo",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Prototipo P3: trazabilidad de tarimas y control FEFO (PWA + servidor modular + PostgreSQL 16)",
+  "workspaces": [
+    "servidor",
+    "cliente"
+  ],
+  "engines": {
+    "node": ">=22"
   },
   "license": "UNLICENSED",
-  "type": "commonjs",
-  "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "dotenv": "^18.0.10",
-    "ejs": "^7.0.2",
-    "exceljs": "^4.4.0",
-    "express": "^5.3.0",
-    "express-mysql-session": "^3.0.3",
-    "express-session": "^1.19.0",
-    "html5-qrcode": "^2.3.8",
-    "mysql2": "^3.24.6",
-    "qrcode": "^1.5.4",
-    "selfsigned": "^5.5.0"
-  },
-  "private": true,
-  "engines": {
-    "node": ">=20"
-  },
   "overrides": {
-    "mysql2": "$mysql2",
-    "uuid": "^11.1.1"
+    "workbox-build": {
+      "glob": "^14.0.6",
+      "minimatch": "^11.0.9"
+    }
+  },
+  "scripts": {
+    "bd:preparar": "npm run bd:preparar -w servidor -- --reiniciar --clave almacen2026",
+    "bd:cargar-sim": "npm run bd:cargar-sim -w servidor -- ../datos/sim_v2",
+    "dev": "npm run dev -w servidor",
+    "dev:cliente": "npm run dev -w cliente",
+    "build": "npm run build -w cliente && npm run build -w servidor",
+    "start": "npm start -w servidor",
+    "test": "npm test -w servidor && npm test -w cliente",
+    "e2e": "npx -w cliente playwright test",
+    "rendimiento": "npm run rendimiento -w servidor"
   }
 }

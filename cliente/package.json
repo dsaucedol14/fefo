@@ -1,0 +1,27 @@
+{
+  "name": "cliente",
+  "version": "0.2.0",
+  "description": "PWA del prototipo FEFO (TypeScript, Vite, Workbox, IndexedDB)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "vista": "vite preview",
+    "test": "vitest run"
+  },
+  "license": "UNLICENSED",
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "fake-indexeddb": "^6.2.8",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.1"
+  },
+  "dependencies": {
+    "@zxing/browser": "^0.2.1",
+    "@zxing/library": "^0.23.0",
+    "idb": "^7.1.1"
+  },
+  "private": true
+}

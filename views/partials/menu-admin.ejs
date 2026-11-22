@@ -1,6 +1,0 @@
-<nav class="acciones no-imprimir" aria-label="Administración" style="margin:0 0 16px">
-  <a class="boton <%= ruta.startsWith('/admin/bitacora') ? '' : 'secundario' %> chico" href="/admin/bitacora">Bitácora y exportes</a>
-  <a class="boton <%= ruta.startsWith('/admin/categorias') ? '' : 'secundario' %> chico" href="/admin/categorias">Categorías y umbrales</a>
-  <a class="boton <%= ruta.startsWith('/admin/productos') ? '' : 'secundario' %> chico" href="/admin/productos">Productos</a>
-  <% if (usuario.esAdmin) { %><a class="boton <%= ruta.startsWith('/admin/usuarios') ? '' : 'secundario' %> chico" href="/admin/usuarios">Usuarios</a><% } %>
-</nav>

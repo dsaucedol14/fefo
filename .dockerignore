@@ -1,0 +1,8 @@
+node_modules
+**/node_modules
+cliente/dist
+servidor/dist
+datos
+**/test-results
+.git
+despliegue/.env

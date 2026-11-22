@@ -1,76 +1,87 @@
-# FEFO Tarimas
+# FEFO Tarimas · prototipo de P3
 
-Prototipo académico del sistema de trazabilidad de tarimas y control FEFO de perecederos para almacenes de pymes, especificado en la Actividad 2 (P2) del Seminario de Análisis y Diseño de Sistemas (UNISUR). Es el horizonte de prototipo de la Tabla VII de P2. Sus resultados son los que se usan para contrastar H1a y H1b.
+Prototipo del sistema de trazabilidad de tarimas y control FEFO de perecederos para almacenes de pymes, construido según el diseño de la **Actividad 3 (P3)** del Seminario de Análisis y Diseño de Sistemas (UNISUR). Implementa la alternativa A2 de P3: aplicación web progresiva con cola local de escaneos, servidor modular en capas y PostgreSQL 16 con las reglas críticas impuestas en la base.
 
-Stack: Node.js 20+, Express 5, EJS, MySQL 8 (RES-05). Funciona en el navegador de teléfonos Android y de computadoras. Escanea con la cámara del teléfono, con un lector de código o con captura manual (RES-03).
+| Capa | Tecnología (P3, Tabla XIII) |
+|---|---|
+| Cliente | PWA en TypeScript con Vite; Service Worker con Workbox; cola en IndexedDB (`idb`); escaneo con BarcodeDetector y ZXing de respaldo |
+| Servidor | Node.js 22 LTS, TypeScript, Fastify con validación por esquema JSON, node-postgres con SQL parametrizado |
+| Base de datos | PostgreSQL 16: `bd/01_esquema.sql` y `bd/02_catalogo.sql` de P3 sin cambios, más `bd/06_extension_prototipo.sql` (ADR-010) |
+| Despliegue | Docker Compose: PostgreSQL, API y Caddy con HTTPS de autoridad interna; respaldo con `pg_dump` |
+| Pruebas | Vitest (unitarias e integración contra PostgreSQL), guion SQL de P3 (PI-01 a PI-27), Playwright (extremo a extremo), prueba de rendimiento PR-01 |
 
-## Qué cubre
+Los datos de comportamiento del almacén son simulados [S]. Sirven para verificar el sistema, no para contrastar H1a ni H1b.
 
-| Requerimiento | Cómo se cumple | Dónde |
+## Qué cubre del prototipo (P3, Tabla II)
+
+| Requerimiento | Implementación | Verificación |
 |---|---|---|
-| RF-01 ID único y etiqueta QR | Al recibir se genera un ID de 18 dígitos con dígito verificador GS1, compatible con SSCC (CF4). La etiqueta es imprimible. | `src/rutas/recepcion.js`, `src/dominio/ids.js` |
-| RF-02 Varios lotes por tarima | `tarima_lote` relaciona tarimas y lotes de muchos a muchos (RN-06). | `src/esquema.js` |
-| RF-04 / RN-03 Validar caducidad | Un lote vencido se rechaza. Si sus días restantes son menos que la cobertura más VMR(c), pide autorización de un supervisor. | `src/dominio/reglas.js` |
-| RF-06 Colocación por escaneo | La tarima queda «por ubicar» y no se surte hasta que se escanea su posición. Una posición solo admite una tarima. | `src/rutas/tarimas.js` |
-| RF-07 Profundidad y bloqueos | Las posiciones de piso guardan fila y profundidad. Cada vista muestra qué tarimas bloquean a cuál. | `src/servicios/inventario.js` |
-| RF-08 Reubicación en un flujo | Escanear tarima, escanear destino y confirmar. El origen queda en el historial. | `/mover` |
-| RF-09 Localizar | Por lote, SKU, nombre, código GS1 de caja, tarima o posición. | `/localizar` |
-| RF-11 Lista de surtido FEFO | RN-01 con desempates, y reservas para que dos pedidos no tomen las mismas cajas (CF2). Si el lote FEFO está bloqueado, lo indica con las tarimas que lo bloquean en vez de saltarlo (C1). | `src/servicios/surtido.js` |
-| RF-12 Verificar la salida | Si el lote escaneado no es el propuesto, pide un motivo del catálogo RN-09 y la salida cuenta como excepción, no como conforme. | `src/rutas/pedidos.js` |
-| RF-13 Descontar existencias | El saldo baja con una condición en la base: nunca queda negativo (RNF-07). | `src/rutas/pedidos.js` |
-| RF-14 / RN-07 Alertas | Nivel según U(c) = mín{VU, VMR + TR + MS} por categoría, más el criterio por rotación. Sin parámetros usa 30 días. | `/alertas`, `/admin/categorias` |
-| RF-16 Bloquear caducados | Un lote caducado no se reserva ni sale, y se puede proponer su baja. | `/alertas`, `/surtir` |
-| RF-20 (subconjunto) Bitácora | Tarea de evaluación, fecha y hora, usuario, escaneos, resultado y valores anterior y nuevo. Triggers de MySQL impiden editar o borrar la bitácora y los movimientos. | `/admin/bitacora` |
-| RNF-08 (acceso básico) | Contraseña de al menos 8 caracteres con bcrypt, bloqueo de 5 minutos al 6.º intento, roles y HTTPS opcional. | `src/rutas/acceso.js` |
-| RNF-09 Privacidad | Solo guarda nombre, usuario y rol. Muestra el aviso de privacidad en el primer ingreso. | `/aviso-privacidad` |
+| RF-01, 02, 04 · RN-03 | Recepción con escaneo GS1 o captura manual; ID de 18 dígitos con verificador; varios lotes por tarima; vida remanente con autorización del supervisor | `api.test.ts` (PE-01), PU-10 |
+| RF-05 (parcial) · RN-05 | Sugerencia de posición: frío solo en C; en piso, la caducidad lejana va al fondo. La base impone RN-05, incluida la cámara reservada a frío y la prohibición de mezclar | PE-02, PI-02 a PI-04 |
+| RF-06, RF-08 | Ubicar y reubicar con 2 escaneos y 1 confirmación, como movimientos que aplica `tg_aplica_movimiento` | PE-02, PE-04, Playwright |
+| RF-07, RF-09 | Búsqueda por lote, SKU, nombre, código GS1, tarima o posición, con profundidad y tarimas que bloquean (`v_bloqueo`) | PE-05, PR-01 |
+| RF-11 · C1 · CF2 | Lista de surtido del motor FEFO (función pura, ADR-005) con reservas, bloqueo y alternativa accesible (Fig. 11a) | PU-01 a PU-04, PE-07 |
+| RF-12, RF-13 · RN-09 | Verificación del lote escaneado; si no es FEFO, la base exige un motivo del catálogo (Fig. 11b); el saldo nunca queda negativo | PE-07, PI-05 a PI-09 |
+| RF-14 · RN-07 | Alertas por U(c) de cada categoría y riesgo por rotación (`v_alerta`); umbrales editables sin código | PU-06, PU-07 |
+| RF-16 · RN-02 | La base rechaza la salida de lotes caducados; propuesta de baja pendiente | PE-07, PI-10 |
+| RF-20, RF-21 (básico) | Movimientos, bitácora y eventos de solo inserción; roles almacenista, supervisor y administración | PI-11, PI-12, PI-26 |
+| RNF-01 | Búsqueda p95 de 81 ms con 5 000 lotes, a través de la API completa | `npm run rendimiento` |
+| RNF-03 (nivel 1) | Cola en IndexedDB con `id_mov` (UUID) y hora del dispositivo; sincronización idempotente; rechazos a revisión del supervisor (Fig. 11c) | `cola.test.ts` (30 movimientos, 0 perdidos, 0 duplicados), Playwright en modo avión |
+| RNF-05 | Controles de 56 px de alto como mínimo, contraste de 4.5:1 o más y etiquetas asociadas a sus campos | Capturas de Playwright |
+| RNF-07 | Restricciones y disparadores de P3; vistas I8 e I9 vacías | Carga del caso simulado |
+| RNF-08 (básico) | bcrypt, bloqueo al 5.º intento, cookie HttpOnly + Secure + SameSite=Strict, HTTPS con Caddy | `api.test.ts` |
+| RNF-09 | Solo nombre, usuario y rol; aviso de privacidad en el primer ingreso | `api.test.ts` |
+| OD7 | Cada movimiento guarda usuario, dispositivo, hora del dispositivo y del servidor, tarea, escaneos y lote propuesto; exportes CSV | `api.test.ts` |
 
-También incluye un mapa de ocupación por zona y fila coloreado por nivel de alerta, hojas de etiquetas QR por zona, la caducidad efectiva por ruptura de la cadena de frío y la regla de frío RN-05.
+Lo que P3 asigna a la productización (RF-03 completo, RF-10, RF-17 a RF-19, RNF-03 nivel 2, RF-22) tiene tablas en el modelo, pero sus pantallas no se construyeron. RF-15 queda condicionado, como indica P3.
 
-Quedan fuera del prototipo, como marca P2 para la productización:
+## Puesta en marcha para desarrollo
 
-- RF-03 completo (solo hay lectura mínima GS1)
-- RF-05, RF-10, RF-15, RF-17 a RF-19 y RF-22
-- La operación sin red (RNF-03)
+Requisitos: Node.js 22 o superior, Docker y Python 3.8 o superior (para `sim.py` de P2).
 
-## Instalación (Windows con Laragon)
+```sh
+npm install
+docker run -d --name fefo-pg -e POSTGRES_PASSWORD=fefo-dev -e TZ=America/Mexico_City -p 5433:5432 postgres:16
+npm run bd:preparar                    # base «fefo»: 01 + 02 + 06; usuarios con contraseña almacen2026
+python <ruta>/programas_P2_v2/sim.py --salida datos/sim_v2
+npm run bd:cargar-sim                  # caso simulado: 4 428 movimientos aplicados por la base
+npm run build && COOKIE_SEGURA=0 npm start   # http://localhost:3000
+```
 
-1. Enciende MySQL en Laragon. Necesitas Node.js 20 o superior.
-2. En la carpeta del proyecto ejecuta `npm install` y luego `copy .env.example .env`. En el `.env` cambia `SESSION_SECRET` y `ADMIN_PASSWORD`.
-3. Ejecuta `npm start` o abre `iniciar.bat`. Entra a http://localhost:3200. La base `fefo_tarimas` se crea sola.
+Para desarrollar con recarga en caliente: `npm run dev` (API en el puerto 3000) y `npm run dev:cliente` (Vite en el 5173, con proxy a la API).
 
-**Datos de demostración:** `npm run demo` borra la base y la llena con el caso simulado. Detén el servidor antes de correrlo y vuelve a arrancarlo después.
+Usuarios del catálogo de P3: `alm01`, `alm02` (almacenistas), `sup01`, `sup02` (supervisores) y `adm01` (administración).
 
-- El caso es «Distribuidora Sierra Norte», con 232 posiciones, 14 productos y unas 160 tarimas.
-- Crea los usuarios `sup01`, `alm01`, `alm02` y `alm03`, todos con contraseña `almacen2026`.
+## Despliegue en la PC del almacén (ADR-008)
 
-**Cámara del teléfono:** el navegador solo da acceso a la cámara con HTTPS. Con `HTTPS_PORT=3443`, el servidor crea un certificado autofirmado en `certs/`. Desde el teléfono abre `https://IP-de-la-PC:3443` y acepta la advertencia una vez. Si no conecta, permite los puertos 3200 y 3443 en el Firewall de Windows.
+```sh
+cd despliegue
+cp .env.example .env          # contraseñas e IP fija de la PC (FEFO_HOST)
+docker compose up -d --build
+docker compose exec api node servidor/dist/tareas/usuarios.js --pendientes <contraseña>
+```
 
-**Fecha de operación:** para trabajar con los datos sintéticos del Anexo C, `FECHA_OPERACION=AAAA-MM-DD` fija la fecha con que se calculan caducidades y alertas. En el piloto real debe quedar vacía.
-
-## Evaluación (Sección III.F de P2)
-
-1. El supervisor escribe el código de la tarea en la franja amarilla («Iniciar tarea») antes de que el operador empiece.
-2. Todo lo que se registre queda ligado a ese código, en la bitácora y en los movimientos.
-3. Al terminar, el supervisor pulsa «Terminar tarea».
-4. **Administración → Bitácora** exporta `bitacora.csv` y `movimientos.csv`. El usuario aparece solo como código numérico. `movimientos.csv` trae el lote propuesto, el lote que salió, `conforme_fefo` y el motivo de excepción de cada salida, que son la base de IND-2.
-
-La versión de la aplicación queda en cada renglón de la bitácora. Así se comprueba que la evaluación se hizo con una versión congelada de las reglas.
+- En cada teléfono, abre una vez `http://IP-DE-LA-PC/ca.crt` e instala el certificado. Después usa `https://IP-DE-LA-PC` e instala la aplicación desde Chrome con «Agregar a la pantalla principal».
+- Respaldo diario: `sh despliegue/respaldo.sh /ruta/disco-externo`, programado con cron o con el Programador de tareas. La línea para restaurar está en el mismo archivo.
 
 ## Pruebas
 
-- `npm test`: casos límite de las reglas (RN-01, RN-02, RN-03, RN-07, criterio por rotación, ID con verificador, lectura GS1).
-- `node scripts/prueba-flujo.js`: recorre la aplicación completa contra el servidor en marcha y la base de demostración.
+```sh
+npm test                 # 14 unitarias del motor y los IDs + 15 de integración de la API (base fefo_prueba) + 3 del cliente
+npm run e2e              # Playwright en un Pixel 7 emulado (servidor en marcha y caso simulado cargado)
+npm run rendimiento      # PR-01 con los 5 000 lotes de bd/05_rendimiento.sql
+docker exec -i fefo-pg psql -U postgres -d <base recién preparada> -f - < bd/03_pruebas_integridad.sql   # PI-01 a PI-27
+```
 
-## Estructura
+`npm run e2e` modifica la base de desarrollo: crea un pedido y registra una salida. Para volver al caso original, repite `bd:preparar` y `bd:cargar-sim`.
+
+## Estructura (P3, Sección VI.A)
 
 ```
-src/
-  dominio/     reglas puras: FEFO, umbral U(c), rotación, RN-03, IDs y GS1
-  servicios/   consultas de inventario, bloqueos, alertas y lista de surtido
-  rutas/       pantallas: recepción, tarimas, localizar, pedidos, alertas, posiciones, admin
-  esquema.js   tablas (Anexo D de P2) y triggers de solo inserción
-views/         plantillas EJS
-public/        estilos y scripts del escáner y la recepción
-scripts/       datos de demostración, prueba de flujo e importación del Anexo C
-test/          pruebas unitarias
+cliente/      PWA: vistas, escaner/ (BarcodeDetector, ZXing, GS1), cola/ (IndexedDB y sincronizador), e2e/
+servidor/     API: api/ (rutas y esquemas), seguridad/, dominio/ (fefo, recepcion, ubicaciones, movimientos,
+              surtido, alertas, parametros, evaluacion, etiquetas), repositorios/, tareas/
+bd/           01_esquema, 02_catalogo, 03_pruebas_integridad, 04_reproducir_sim, 05_rendimiento (P3) y 06_extension_prototipo
+despliegue/   Dockerfile, docker-compose.yml, Caddyfile, initdb/, respaldo.sh
+adr/          ADR-001 a ADR-009 de P3 y ADR-010 (extensiones del prototipo)
 ```

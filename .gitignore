@@ -1,5 +1,7 @@
 node_modules/
-.env
-certs/
+dist/
 datos/
+test-results/
+playwright-report/
+despliegue/.env
 *.log
