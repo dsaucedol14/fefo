@@ -1,6 +1,6 @@
 /** Mapa de ocupación por zona: en piso cada columna es una fila del frente (arriba) al fondo (abajo); color = peor alerta. */
 import { api } from '../api.js';
-import { h, pintar } from '../ui.js';
+import { h, NIVEL, pintar } from '../ui.js';
 import { encabezado } from '../main.js';
 
 interface Celda { id_posicion: string; zona: string; tipo: string; es_fria: boolean; fila: string | null; profundidad: number; id_tarima: string | null; nivel: string | null }
@@ -21,9 +21,14 @@ export async function vistaMapa() {
     ? h('a', { class: `celda ocupada${c.nivel ? ` n-${c.nivel}` : ''}`, href: `#/tarima/${c.id_tarima}`, title: `${c.id_posicion}${c.nivel ? ` · ${c.nivel}` : ''}`,
       style: c.nivel ? `background:${COLOR[c.nivel]}` : '' })
     : h('span', { class: 'celda', title: `${c.id_posicion} · libre` });
+  const muestra = (texto: string, clase: string, color?: string) => h('span', { class: 'leyenda-item' },
+    h('span', { class: `celda ${clase}`, style: color ? `background:${color}` : '' }), texto);
   pintar(
-    h('div', { class: 'card chico' }, 'Libre ', h('span', { class: 'celda', style: 'display:inline-block;vertical-align:middle' }), '  Ocupada ',
-      h('span', { class: 'celda ocupada', style: 'display:inline-block;vertical-align:middle' }), '  Alerta: color del peor nivel de sus lotes.'),
+    h('div', { class: 'card' },
+      h('div', { class: 'leyenda' },
+        muestra('Libre', ''), muestra('Ocupada', 'ocupada'),
+        ...Object.entries(COLOR).map(([n, c]) => muestra(NIVEL[n] ?? n, `ocupada n-${n}`, c))),
+      h('p', { class: 'chico tenue', style: 'margin:8px 0 0' }, 'El color de una tarima es el peor nivel de alerta de sus lotes. Toca una para ver su detalle.')),
     [...zonas].map(([zona, grupos]) => {
       const todas = [...grupos.values()].flat();
       const t = todas[0];

@@ -1,7 +1,7 @@
 /** Inicio de sesión (RNF-08) y aviso de privacidad en el primer ingreso (RNF-09). */
 import { api, ErrorApi, SinRed } from '../api.js';
 import { estado, idDispositivo, usuarioRecordado, type Usuario } from '../estado.js';
-import { h, pintar } from '../ui.js';
+import { h, icono, pintar } from '../ui.js';
 
 export function vistaLogin(listo: () => void) {
   const usuario = h('input', { id: 'usuario', autocomplete: 'username', autocapitalize: 'none', required: true });
@@ -22,10 +22,14 @@ export function vistaLogin(listo: () => void) {
     }
   } },
   h('h2', null, 'Iniciar sesión'),
-  h('p', { class: 'tenue chico' }, 'Trazabilidad de tarimas y control FEFO · prototipo académico'),
   error, h('label', { for: 'usuario' }, 'Usuario'), usuario, h('label', { for: 'contrasena' }, 'Contraseña'), contrasena,
   h('button', { class: 'btn', type: 'submit' }, 'Entrar'));
-  pintar(form);
+  pintar(
+    h('div', { class: 'marca-acceso' },
+      h('span', { class: 'marca-icono' }, icono('tarima')),
+      h('div', null, h('b', null, 'FEFO Tarimas'), h('span', null, 'Trazabilidad de tarimas y control FEFO'))),
+    form,
+    h('p', { class: 'tenue chico', style: 'text-align:center' }, 'Prototipo académico · Universidad del Sur'));
   usuario.focus();
 }
 

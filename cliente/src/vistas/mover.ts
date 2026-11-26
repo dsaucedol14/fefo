@@ -22,9 +22,16 @@ export async function vistaMover(p: URLSearchParams) {
   let estadoTarima = '';
   const datos = h('div');
   const resultado = h('div');
+  const pasos = h('ol', { class: 'pasos', 'aria-label': 'Pasos' }, h('li', null, 'Tarima'), h('li', null, 'Destino'), h('li', null, 'Confirmar'));
+  const paso = (n: number) => [...pasos.children].forEach((li, i) => {
+    li.className = i < n ? 'hecho' : i === n ? 'actual' : '';
+    if (i === n) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+  });
+  paso(0);
 
   async function cargarTarima(id: string) {
     resultado.replaceChildren();
+    paso(0);
     tarimaId = id;
     try {
       const t = await api<{ id_tarima: string; id_posicion: string | null; estado: string; lotes: Array<{ producto: string; num_lote: string; cajas: number }> }>('GET', `/tarimas/${id}`);
@@ -38,7 +45,9 @@ export async function vistaMover(p: URLSearchParams) {
         h('div', { class: 'chico tenue' }, t.lotes.map((l) => `${l.producto} · ${l.num_lote} · ${l.cajas} cajas`).join(' — '))));
       const s = await api<Sugerencia>('GET', `/posiciones/sugerencia?tarima=${id}`).catch(() => null);
       if (s) datos.append(h('div', { class: 'card' }, h('div', { class: 'lbl' }, 'Posiciones sugeridas (RF-05)'), h('div', { class: 'chico' }, s.criterio),
-        h('div', { class: 'big', style: 'font-size:19px' }, s.posiciones.map((x) => x.id_posicion).join(' · ') || 'No hay posiciones libres compatibles')));
+        s.posiciones.length
+          ? h('div', { class: 'chips' }, s.posiciones.map((x) => h('span', { class: 'chip mono' }, x.id_posicion)))
+          : h('div', { class: 'warn' }, 'No hay posiciones libres compatibles')));
     } catch (e) {
       if (!(e instanceof SinRed)) { datos.replaceChildren(h('div', { class: 'err-msg' }, (e as ErrorApi).message)); return; }
       const conocida = await posicionConocida(id);
@@ -50,6 +59,7 @@ export async function vistaMover(p: URLSearchParams) {
         h('div', { class: 'fila-dato' }, h('span', null, 'Origen (según el teléfono)'), h('b', null, origen ?? 'Por ubicar'))));
     }
     tarjetaDestino.hidden = false;
+    paso(1);
     destino.entrada.focus();
   }
 
@@ -67,6 +77,7 @@ export async function vistaMover(p: URLSearchParams) {
     destino.entrada.value = l.valor;
     confirmar.disabled = false;
     confirmar.textContent = `Confirmar ${origen ? 'movimiento' : 'ubicación'} en ${l.valor}`;
+    paso(2);
     confirmar.focus();
   } });
 
@@ -88,6 +99,6 @@ export async function vistaMover(p: URLSearchParams) {
   }
 
   const tarjetaDestino = h('div', { class: 'card', hidden: true }, destino.el);
-  pintar(h('div', { class: 'card' }, tarimaCampo.el), datos, tarjetaDestino, confirmar, resultado);
+  pintar(pasos, h('div', { class: 'card' }, tarimaCampo.el), datos, tarjetaDestino, confirmar, resultado);
   if (tarimaId) void cargarTarima(tarimaId);
 }

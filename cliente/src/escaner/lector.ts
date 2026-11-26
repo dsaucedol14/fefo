@@ -3,7 +3,7 @@
  * respaldo en otros navegadores. Lee QR de tarima y posición y GS1-128 / DataMatrix de cajas. Linterna del teléfono
  * para poca luz (riesgo R3). Requiere HTTPS (o localhost).
  */
-import { h, vibrar } from '../ui.js';
+import { h, icono, vibrar } from '../ui.js';
 
 const FORMATOS = ['qr_code', 'code_128', 'ean_13', 'ean_8', 'data_matrix', 'upc_a', 'itf'];
 
@@ -105,7 +105,7 @@ export function campoEscaneo(o: { etiqueta: string; marcador?: string; valor?: s
   const camara = h('button', { class: 'camara', type: 'button', 'aria-label': 'Escanear con la cámara', onclick: async () => {
     const v = await escanear();
     if (v) { entrada.value = v; leer(v); }
-  } }, '📷');
+  } }, icono('camara'));
   if (o.enfocar) setTimeout(() => entrada.focus(), 50);
   return { el: h('div', null, h('label', { for: id }, o.etiqueta), h('div', { class: 'escaneo' }, entrada, camara)), entrada };
 }

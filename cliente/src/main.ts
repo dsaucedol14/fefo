@@ -4,7 +4,7 @@ import { registerSW } from 'virtual:pwa-register';
 import { api, alErrorDeSesion, SinRed } from './api.js';
 import { estado, puede, tarea, usuarioRecordado, type Usuario } from './estado.js';
 import { alCambiar, enCola, iniciarSincronizador, refrescarPosiciones, sincronizar } from './cola/cola.js';
-import { h } from './ui.js';
+import { cargando, h, icono, pintar } from './ui.js';
 import { vistaLogin, vistaAviso } from './vistas/acceso.js';
 import { vistaInicio } from './vistas/inicio.js';
 import { vistaRecepcion } from './vistas/recepcion.js';
@@ -39,8 +39,9 @@ async function pintarBarra() {
   const rechazados = cola.length - pendientes;
   const red = h('span', { class: `red${estado.enLinea ? '' : ' sin'}` }, estado.enLinea ? 'En línea' : 'Sin red');
   const ruta = location.hash.split('?')[0] || '#/';
-  barra.replaceChildren(h('div', null,
-    h('div', { class: 'fila' }, h('h1', null, titulo, subtitulo ? h('small', null, subtitulo) : null), red),
+  barra.replaceChildren(h('div', { class: 'barra-interior' },
+    h('div', { class: 'fila' }, h('a', { class: 'logo', href: '#/', 'aria-label': 'Inicio' }, icono('tarima')),
+      h('h1', null, titulo, subtitulo ? h('small', null, subtitulo) : null), red),
     estado.usuario ? h('nav', { class: 'nav', 'aria-label': 'Principal' },
       MENU.filter(([, , r]) => puede(r)).map(([href, texto]) =>
         h('a', { href, class: (href === '#/' ? ruta === '#/' : ruta.startsWith(href)) ? 'activo' : '' }, texto)),
@@ -96,10 +97,12 @@ async function enrutar() {
   if (!estado.usuario.aviso_aceptado_en) return vistaAviso(() => { estado.usuario!.aviso_aceptado_en = new Date().toISOString(); void enrutar(); });
   encabezado('FEFO Tarimas', estado.usuario.nombre);
   const vista = RUTAS[partes[0]] ?? vistaInicio;
+  cargando();
   try {
     await vista(parametros, partes);
   } catch (e) {
-    document.querySelector('main')!.replaceChildren(h('div', { class: 'err-msg' }, (e as Error).message));
+    pintar(h('div', { class: 'err-msg', role: 'alert' }, (e as Error).message),
+      h('button', { class: 'btn sec', type: 'button', onclick: () => void enrutar() }, 'Reintentar'));
   }
   void pintarBarra();
 }

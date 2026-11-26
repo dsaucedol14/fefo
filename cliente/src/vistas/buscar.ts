@@ -3,7 +3,7 @@ import { api, urlApi } from '../api.js';
 import { puede, tarea } from '../estado.js';
 import { clasificar } from '../escaner/gs1.js';
 import { campoEscaneo } from '../escaner/lector.js';
-import { avisar, corto, dias, fecha, h, pintar } from '../ui.js';
+import { avisar, corto, dias, fecha, h, icono, pintar } from '../ui.js';
 import { encabezado } from '../main.js';
 
 interface Fila { id_lote: string; num_lote: string; sku: string; producto: string; caducidad_vigente: string; id_tarima: string; id_posicion: string | null;
@@ -23,12 +23,20 @@ export function vistaBuscar(p: URLSearchParams) {
     const r = await api<{ tipo: string; id_tarima?: string; resultados: Fila[] }>('GET', `/buscar?${q}`).catch((e) => { avisar(e.message, 'error'); return null; });
     if (!r) return;
     if (r.tipo === 'tarima') { location.hash = `#/tarima/${r.id_tarima}`; return; }
-    resultados.replaceChildren(r.resultados.length ? h('p', { class: 'tenue chico' }, `${r.resultados.length} resultados. `, h('span', { class: 'fefo' }, 'FEFO'), ' sale primero.') : h('div', { class: 'card tenue' }, 'Sin existencias que coincidan.'),
-      ...r.resultados.map((x) => h('a', { class: `card${x.es_candidato_fefo ? ' propuesta' : ''}`, href: `#/tarima/${x.id_tarima}`, style: 'display:block;text-decoration:none;color:inherit' },
-        h('h3', null, x.producto, ' ', x.es_candidato_fefo ? h('span', { class: 'fefo' }, 'FEFO') : null),
-        h('div', { class: 'chico tenue' }, `Lote ${x.num_lote} · caduca ${fecha(x.caducidad_vigente)} (${dias(x.dias_restantes)}) · ${x.cajas} cajas`),
-        h('div', { class: 'big' }, x.id_posicion ?? 'Por ubicar'),
-        h('div', { class: 'chico' }, `Zona ${x.zona ?? '—'}${x.profundidad && x.profundidad > 1 ? ` · profundidad ${x.profundidad}` : ''} · tarima ${corto(x.id_tarima)}`),
+    resultados.replaceChildren(r.resultados.length
+      ? h('p', { class: 'tenue chico' }, `${r.resultados.length} ${r.resultados.length === 1 ? 'resultado' : 'resultados'}. `, h('span', { class: 'fefo' }, 'FEFO'), ' sale primero.')
+      : h('div', { class: 'card vacio' }, icono('buscar'), h('p', null, 'Sin existencias que coincidan.'), h('p', { class: 'chico tenue' }, 'Prueba con el SKU, parte del nombre, el número de lote o la posición.')),
+      ...r.resultados.map((x) => h('a', { class: `card resultado${x.es_candidato_fefo ? ' propuesta' : ''}`, href: `#/tarima/${x.id_tarima}` },
+        h('div', { class: 'resultado-cabeza' },
+          h('div', null, h('div', { class: 'lbl' }, x.id_posicion ? `Zona ${x.zona ?? '—'}${x.profundidad && x.profundidad > 1 ? ` · profundidad ${x.profundidad}` : ''}` : 'Sin posición'),
+            h('div', { class: 'big' }, x.id_posicion ?? 'Por ubicar')),
+          x.es_candidato_fefo ? h('span', { class: 'fefo' }, 'FEFO') : null),
+        h('h3', null, x.producto),
+        h('div', { class: 'chips' },
+          h('span', { class: 'chip' }, `Lote ${x.num_lote}`),
+          h('span', { class: `chip${x.dias_restantes < 0 ? ' chip-mal' : x.dias_restantes === 0 ? ' chip-aviso' : ''}` }, `Caduca ${fecha(x.caducidad_vigente)} · ${dias(x.dias_restantes)}`),
+          h('span', { class: 'chip' }, `${x.cajas} cajas`),
+          h('span', { class: 'chip mono' }, `Tarima ${corto(x.id_tarima)}`)),
         x.tarimas_delante ? h('div', { class: 'warn' }, `Bloqueado por ${x.tarimas_delante}: ${(x.bloqueada_por ?? '').split(',').map(corto).join(', ')}`) : null)));
   }
   const campo = campoEscaneo({ etiqueta: 'Lote, producto, tarima o posición', contador, enfocar: true, valor: p.get('q') ?? '', alLeer: (v) => void buscar(v) });
