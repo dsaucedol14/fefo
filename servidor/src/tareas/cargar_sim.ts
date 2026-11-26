@@ -61,6 +61,7 @@ async function main() {
   const lotes = leer('lotes.csv');
   const movs = leer('movimientos.csv');
   const sels = leer('selecciones.csv');
+  const mermas = leer('mermas.csv');
   const ultimo = movs.reduce((m, x) => (x.fecha > m ? x.fecha : m), '0000-00-00');
   const hoyReal: string = (await con.query(`SELECT current_date::text AS d`)).rows[0].d;
   const desfase = desplazar ? diasEntre(ultimo, hoyReal) - 1 : 0;
@@ -122,6 +123,7 @@ async function main() {
   }
 
   let iSel = 0;
+  let iMerma = 0;
   const inicio = Date.now();
   for (const m of movs) {
     const f = mover(m.fecha);
@@ -133,7 +135,7 @@ async function main() {
     } else if (m.tipo === 'SALIDA') {
       const s = sels[iSel++];
       const conforme = s.conforme_fefo === '1';
-      const idl = lid(m.lote);
+      const idl = lid(s.lote_elegido);
       // PU-05: lo que el motor diría con las existencias justo antes de la salida
       const ex = (await con.query(
         `SELECT COALESCE(l.caducidad_efectiva, l.fecha_caducidad)::text AS caducidad_vigente, sum(tl.cajas)::int AS cajas
@@ -148,7 +150,8 @@ async function main() {
         if (r.es_fefo) conformes++;
       }
     } else if (m.tipo === 'BAJA_CADUCIDAD') {
-      await mov('baja', m.tarima, f, { lote: lid(m.lote), delta: -Number(m.cajas) });
+      const mm = mermas[iMerma++];
+      await mov('baja', m.tarima, f, { lote: lid(mm.lote), delta: -Number(m.cajas) });
     }
   }
   const seriesUsadas = [...porTarima.keys()].length;

@@ -48,6 +48,29 @@ npm run bd:cargar-sim                  # caso simulado: 4 428 movimientos aplica
 npm run build && COOKIE_SEGURA=0 npm start   # http://localhost:3000
 ```
 
+### Desarrollo en esta Mac (Intel, sin Docker)
+
+Homebrew dejó de soportar Mac Intel, así que en esta máquina PostgreSQL 16 corre con
+[Postgres.app](https://postgresapp.com/) en lugar de Docker. Ya está instalado en `/Applications/Postgres.app`,
+con un cluster dedicado al proyecto en `~/Library/Application Support/Postgres/var-fefo-16`, puerto `5433`,
+superusuario `postgres` / contraseña `fefo-dev` (los mismos valores que usaba el `docker run` de arriba, así que
+no hace falta tocar `config.ts` ni variables de entorno).
+
+```sh
+./despliegue/pg-local-iniciar.sh       # arranca Postgres 16 (puerto 5433)
+npm install
+npm run bd:preparar                    # base «fefo»: 01 + 02 + 06; usuarios con contraseña almacen2026
+npm run build && COOKIE_SEGURA=0 npm start   # http://localhost:3000
+./despliegue/pg-local-detener.sh       # al terminar, si quieres apagar Postgres
+```
+
+Para cargar el caso simulado, después de `bd:preparar`:
+
+```sh
+python3 programas_P2_v2/sim.py --salida datos/sim_v2
+npm run bd:cargar-sim
+```
+
 Para desarrollar con recarga en caliente: `npm run dev` (API en el puerto 3000) y `npm run dev:cliente` (Vite en el 5173, con proxy a la API).
 
 Usuarios del catálogo de P3: `alm01`, `alm02` (almacenistas), `sup01`, `sup02` (supervisores) y `adm01` (administración).

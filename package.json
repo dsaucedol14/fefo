@@ -27,5 +27,9 @@
     "test": "npm test -w servidor && npm test -w cliente",
     "e2e": "npx -w cliente playwright test",
     "rendimiento": "npm run rendimiento -w servidor"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true
   }
 }
